@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bus Planning Website</title>
+<style>
+body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+header { background-color: #0078D7; color: white; padding: 20px; text-align: center; }
+main { padding: 20px; }
+h2 { color: #0078D7; }
+form { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 400px; margin: 20px auto; }
+label { display: block; margin-top: 10px; margin-bottom: 5px; }
+input, select, button { padding: 8px; width: 100%; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+button { background-color: #0078D7; color: white; border: none; cursor: pointer; }
+button:hover { background-color: #005fa3; }
+#plannerSection, #adminSection { display: none; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>Bus Planning Website</h1>
+</header>
+
+<main>
+<!-- LOGIN -->
+<div id="loginSection">
+<h2>Login</h2>
+<form id="loginForm">
+<label for="username">Gebruikersnaam:</label>
+<input type="text" id="username" required>
+<label for="password">Wachtwoord:</label>
+<input type="password" id="password" required>
+<button type="submit">Login</button>
+</form>
+</div>
+
+<!-- RIT PLANNER -->
+<div id="plannerSection">
+<h2>Plan een Dienst Rit</h2>
+<form id="busForm">
+<label for="lijn">Lijn:</label>
+<input type="text" id="lijn" placeholder="Bijv. 1A" required>
+<label for="stelplaats">Stelplaats:</label>
+<input type="text" id="stelplaats" placeholder="Bijv. Garage Brussel" required>
+<label for="bussoort">Bussoort:</label>
+<input type="text" id="bussoort" placeholder="Bijv. Van Hool AG300" required>
+<label for="van">Van:</label>
+<input type="text" id="van" placeholder="Bijv. Station A" required>
+<label for="naar">Naar:</label>
+<input type="text" id="naar" placeholder="Bijv. Station B" required>
+<label for="tijd">Vertrektijd:</label>
+<input type="time" id="tijd" required>
+<button type="submit">Plan Rit</button>
+</form>
+
+<h2>Geplande Ritten</h2>
+<table>
+<thead>
+<tr>
+<th>Lijn</th><th>Stelplaats</th><th>Bussoort</th><th>Van</th><th>Naar</th><th>Vertrektijd</th>
+</tr>
+</thead>
+<tbody id="ritTableBody"></tbody>
+</table>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminSection">
+<h2>Admin: Nieuwe Gebruiker Aanmaken</h2>
+<form id="adminForm">
+<label for="newUsername">Gebruikersnaam:</label>
+<input type="text" id="newUsername" required>
+<label for="newPassword">Wachtwoord:</label>
+<input type="password" id="newPassword" required>
+<label for="role">Rol:</label>
+<select id="role">
+<option value="normal">Normale gebruiker</option>
+<option value="admin">Admin</option>
+</select>
+<button type="submit">Gebruiker aanmaken</button>
+</form>
+
+<h2>Gebruikerslijst</h2>
+<table>
+<thead>
+<tr><th>Gebruikersnaam</th><th>Wachtwoord</th><th>Rol</th><th>Acties</th></tr>
+</thead>
+<tbody id="userListBody"></tbody>
+</table>
+</div>
+
+<script>
+// Initialisatie van localStorage gebruikers en ritten
+let users = JSON.parse(localStorage.getItem("users")) || [
+{username: "admin", password: "1234", role: "admin"}
+];
+
+let ritten = JSON.parse(localStorage.getItem("ritten")) || [];
+let loggedInUser = null;
+
+const loginForm = document.getElementById('loginForm');
+const loginSection = document.getElementById('loginSection');
+const plannerSection = document.getElementById('plannerSection');
+const adminSection = document.getElementById('adminSection');
+const ritTableBody = document.getElementById('ritTableBody');
+const userListBody = document.getElementById('userListBody');
+
+// Ritten renderen
+function renderRitten() {
+  ritTableBody.innerHTML = "";
+  ritten.forEach(rit => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${rit.lijn}</td><td>${rit.stelplaats}</td><td>${rit.bussoort}</td><td>${rit.van}</td><td>${rit.naar}</td><td>${rit.tijd}</td>`;
+    ritTableBody.appendChild(row);
+  });
+}
+
+// Gebruikers renderen
+function renderUsers() {
+  userListBody.innerHTML = "";
+  users.forEach((u,index)=>{
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${u.username}</td><td>${u.password}</td><td>${u.role}</td><td>${u.username!=='admin'?'<button onclick="deleteUser('+index+')">Verwijder</button>':''}</td>`;
+    userListBody.appendChild(row);
+  });
+}
+
+// Gebruiker verwijderen
+function deleteUser(index) {
+  if(!confirm(`Weet je zeker dat je ${users[index].username} wilt verwijderen?`)) return;
+  users.splice(index,1);
+  localStorage.setItem("users",JSON.stringify(users));
+  renderUsers();
+}
+
+// Login functionaliteit
+loginForm.addEventListener('submit',function(e){
+e.preventDefault();
+const username = document.getElementById('username').value;
+const password = document.getElementById('password').value;
+const user = users.find(u=>u.username===username && u.password===password);
+if(user){
+  loggedInUser=user;
+  alert('Login succesvol!');
+  loginSection.style.display='none';
+  plannerSection.style.display='block';
+  renderRitten();
+  if(user.username==='admin'){
+    adminSection.style.display='block';
+    renderUsers();
+  }
+}else{
+  alert('Ongeldige gebruikersnaam of wachtwoord!');
+}
+});
+
+// Discord webhook (vul hier je URL in)
+const webhookURL="JE_DISCORD_WEBHOOK_URL_HIER";
+
+// Rit plannen
+const busForm=document.getElementById('busForm');
+busForm.addEventListener('submit',function(e){
+e.preventDefault();
+const lijn=document.getElementById('lijn').value;
+const stelplaats=document.getElementById('stelplaats').value;
+const bussoort=document.getElementById('bussoort').value;
+const van=document.getElementById('van').value;
+const naar=document.getElementById('naar').value;
+const tijd=document.getElementById('tijd').value;
+
+const rit={lijn,stelplaats,bussoort,van,naar,tijd};
+ritten.push(rit);
+localStorage.setItem("ritten",JSON.stringify(ritten));
+renderRitten();
+
+const content=`**Nieuwe Dienst Rit Gepland door ${loggedInUser.username}:**\n- Lijn: ${lijn}\n- Stelplaats: ${stelplaats}\n- Bussoort: ${bussoort}\n- Van: ${van}\n- Naar: ${naar}\n- Vertrektijd: ${tijd}`;
+
+fetch(webhookURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})})
+.then(response=>{if(response.ok){alert('Dienst rit succesvol opgeslagen en naar Discord gestuurd!'); busForm.reset();} else {alert('Fout bij verzenden naar Discord.');}})
+.catch(err=>{console.error(err); alert('Fout bij verbinden met Discord.');});
+});
+
+// Admin: nieuwe gebruiker aanmaken
+const adminForm=document.getElementById('adminForm');
+adminForm.addEventListener('submit',function(e){
+e.preventDefault();
+if(loggedInUser.username!=='admin'){alert("Alleen de hoofdadmin kan nieuwe gebruikers aanmaken!"); return;}
+const newUsername=document.getElementById('newUsername').value;
+const newPassword=document.getElementById('newPassword').value;
+const role=document.getElementById('role').value;
+if(users.find(u=>u.username===newUsername)){alert("Gebruiker bestaat al!"); return;}
+users.push({username:newUsername,password:newPassword,role});
+localStorage.setItem("users",JSON.stringify(users));
+renderUsers();
+alert(`Gebruiker ${newUsername} (${role}) succesvol aangemaakt!`);
+adminForm.reset();
+});
+</script>
+
+</body>
+</html>
